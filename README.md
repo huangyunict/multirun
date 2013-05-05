@@ -24,13 +24,13 @@ One main producer thread reads commands from a input file and submit it to task 
 Multiple consumer threads get tasks from task list and run them concurrently. <br />
 多个消费者线程从任务队列中取出命令并同时执行。
 
-Due to the multi-threading nature, the actual executing order of commands are unknown in advance.
+Due to the multi-threading nature, the actual executing order of commands are unknown in advance. <br />
 由于多线程的本质，各个命令的执行顺序是不可预知的。
 
-The input command file and thread number must be given when `multirun` starts.
+The input command file and thread number must be given when `multirun` starts. <br />
 在 `multirun` 启动时，必须指定输入文件和启动的线程数。
 
-You may use `-l LOG` to see what happened inside the `multirun` program.
+You may use `-l LOG` to see what happened inside the `multirun` program. <br />
 你可以用 `-l LOG` 查看程序 `multirun` 的日志。
 
 
@@ -44,7 +44,7 @@ If you want to execute multi-line shell commands, please first wrap them in a si
 Lines starting with `#` and the contents of which are not special commands will be ignored. <br />
 以 `#` 顶格开始且内容不是特殊命令的行会被忽略
 
-The space characters at the beginning and the end of lines will be ignored.
+The space characters at the beginning and the end of lines will be ignored. <br />
 命令行两端的空白字符会被忽略。
 
 The commands in the input file should not wait for keyboard input. You may redirect standard input from file instead. <br />
