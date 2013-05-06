@@ -33,6 +33,8 @@ The input command file and thread number must be given when `multirun` starts. <
 You may use `-l LOG` to see what happened inside the `multirun` program. <br />
 你可以用 `-l LOG` 查看程序 `multirun` 的日志。
 
+**The input file could be a regular file or a FIFO, but in either case it must ends with `#exit` line, otherwise `multirun` will read the input file over and over again. This is a known bug.** <br />
+**输入文件可以是普通文件或者FIFO，但无论那种情况输入文件必须以 `#exit` 结束，否则 `multirun` 会一遍又一遍地执行文件里的命令，这是一个已知的Bug。**
 
 ### Command file format
 The input of `multirun` is a command file, one command per line. <br />
@@ -55,16 +57,95 @@ The commands in the input file had better output nothing, otherwise the outputs 
 
 
 ### Special commands
-*   The special barrier synchronization command: `#sync`. <br />
-    特殊的路障同步命令: `#sync`. <br>
-    All threads will be suspended when `#sync` is executed, and waked up until the last thread executes the command. <br />
-    所有线程执行到命令 `#sync` 时会等待，直到最后一个线程执行到此才被唤醒。 <br>
-    Current version of `multirun` only support simple barrier synchronization, and other complicated synchronizations are not supported yet. <br />
-    目前版本的 `multirun` 只提供了简单的同步路障功能，暂不支持更为复杂的指定命令依赖关系的操作。
+* The special barrier synchronization command: `#sync`. <br />
+  特殊的路障同步命令: `#sync` 。 <br>
+  All threads will be suspended when `#sync` is executed, and waked up until the last thread executes the command. <br />
+  所有线程执行到命令 `#sync` 时会等待，直到最后一个线程执行到此才被唤醒。 <br>
+  Current version of `multirun` only support simple barrier synchronization, and other complicated synchronizations are not supported yet. <br />
+  目前版本的 `multirun` 只提供了简单的同步路障功能，暂不支持更为复杂的指定命令依赖关系的操作。
+* The special exiting command: `#exit`. <br />
+  特殊的退出命令: `#exit` 。 <br />
+  All commands after the exiting command will be ignored. <br />
+  所有在退出命令之后的命令会被忽略。
 
-*   The special exiting command: `#exit`. <br />
-    特殊的退出命令: `#exit`. <br />
-    All commands after the exiting command will be ignored. <br />
-    所有在退出命令之后的命令会被忽略。
+
+Example 1
+---------
+* Goal: Using `gzip` to compress all text files (with extension `.txt`) in the `foo` directory. <br />
+  目标: 用 `gzip` 压缩 `foo` 目录下面的纯文本文件(以`.txt`为扩展名)。
+* Step 1: Generate input command file `input.cmd`, using following codes. <br />
+  步骤 1: 生成输入命令文件 `input.cmd`, 可以用下面的命令生成。
+
+    cd foo/ 
+    ls *.txt | awk '{print "gzip " $0}' > ../input.cmd
+    echo "#exit" >> ../input.cmd
+    cd ../
+
+* Show the input command file. <br />
+  查看命令文件。
+
+      gzip a.txt
+      gzip b.txt
+      ...
+      gzip bar.txt
+      #exit
+
+* Step 2: Run `multirun` with 5 threads. <br />
+  步骤 2: 运行 `multirun` 启动5个线程。
+
+    /path/to/multirun input.cmd 5 -l log.txt
+
+
+
+* 启动mulritun：
+  multirun ../input.cmd 5
+
+=========使用示例2：使用同步命令的例子=========
+* 功能：下载一个URL列表中的所有网页，全部下载完了之后统计tf和idf。
+* 难点：统计tf和idf必须在全部网页下载完了之后才能进行。
+* 已有程序：
+  download_parse_one.sh：下载一个网页，处理后存放到目录download下面
+  count_tf_idf：给定目录，在目录下所有文件上统计tf和idf。
+* 生成命令文件：
+  awk '{print download_parse_one.sh $0}' < url.txt > input.cmd
+  echo "#sync" >> input.cmd
+  echo "./count_tf_idf download/" >> input.cmd
+  echo "#exit" >> input.cmd
+* 启动multirun：
+  multirun input.cmd 10
+
+TODO: 示例3可以用更简单的方法实现，就是需要并行的部分再使用multirun
+
+multictrl
+---------
+Not implemented yet. <br />
+尚未实现。
+
+What's next?
+------------
+支持功能: 
+* 配置文件一定是可以直接用bash执行的，也就是说所有的附加控制信息都写在注释里
+* 每个任务有一个唯一的可配置的字符串id, 在配置文件和动态调整的时候都用这个可读性比较好的id来代表任务
+* 支持静态添加任务和设置任务拓扑结构
+* 支持动态添加新任务并设置新任务和现有任务的拓扑关系
+* 支持任务状态和拓扑结构查询功能(已完成, 执行中, 队列中, 未入队)
+* 支持删除队列中和未入队任务
+* 支持调整队列中任务执行顺序
+* 支持调整队列中和未入队任务的拓扑结构. 注意如果修改了队列中的任务的拓扑结构, 有可能会让任务从队列中移到未入队, 或相反
+* 强制停止当前任务, 并自动删除依赖该任务的后续任务树
+* 断点续行? 
+* 不能修改任何已完成任务的状态
+* 支持动态调整线程数目
+
+实现细节:
+* 核心结构是graph, 根据graph的拓扑排序来控制命令的顺序
+每次并行执行入度为0的任务，当完成某个任务时，主线程判断修改入度，再把入度为0的添加到队列中。
+增加命令，可以动态修改线程的数目。
+
+
+
+
+
+
 
 
