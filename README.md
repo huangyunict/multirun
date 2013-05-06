@@ -36,6 +36,10 @@ You may use `-l LOG` to see what happened inside the `multirun` program. <br />
 **The input file could be a regular file or a FIFO, but in either case it must ends with `#exit` line, otherwise `multirun` will read the input file over and over again. This is a known bug.** <br />
 **输入文件可以是普通文件或者FIFO，但无论那种情况输入文件必须以 `#exit` 结束，否则 `multirun` 会一遍又一遍地执行文件里的命令，这是一个已知的Bug。**
 
+The exiting status of `multirun` is 0 if all input commands executed successfully, 1 if at least one input command failed.
+如果所有输入命令都执行成功，程序 `multirun` 的退出状态为0，否则退出状态为1。
+
+
 ### Command file format
 The input of `multirun` is a command file, one command per line. <br />
 程序 `multirun` 的输入是一个文本文件, 一行是一个命令。
