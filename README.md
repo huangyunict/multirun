@@ -69,52 +69,61 @@ The commands in the input file had better output nothing, otherwise the outputs 
   所有在退出命令之后的命令会被忽略。
 
 
-Example 1
----------
+Example 1: simple task
+----------------------
 * Goal: Using `gzip` to compress all text files (with extension `.txt`) in the `foo` directory. <br />
   目标: 用 `gzip` 压缩 `foo` 目录下面的纯文本文件(以`.txt`为扩展名)。
 * Step 1: Generate input command file `input.cmd`, using following codes. <br />
   步骤 1: 生成输入命令文件 `input.cmd`, 可以用下面的命令生成。
 
-    cd foo/ 
-    ls *.txt | awk '{print "gzip " $0}' > ../input.cmd
-    echo "#exit" >> ../input.cmd
-    cd ../
+        cd foo/ 
+        ls *.txt | awk '{print "gzip " $0}' > ../input.cmd
+        echo "#exit" >> ../input.cmd
+        cd ../
 
 * Show the input command file. <br />
   查看命令文件。
 
-      gzip a.txt
-      gzip b.txt
-      ...
-      gzip bar.txt
-      #exit
+        gzip a.txt
+        gzip b.txt
+        ...
+        gzip bar.txt
+        #exit
 
 * Step 2: Run `multirun` with 5 threads. <br />
   步骤 2: 运行 `multirun` 启动5个线程。
 
-    /path/to/multirun input.cmd 5 -l log.txt
+        /path/to/multirun input.cmd 5 -l log.txt
 
+Example 2: task with synchronization
+------------------------------------
+* Goal: Downloading all webpages given URL list, then calculating TF-IDF. <br />
+  目标: 下载一个URL列表中的所有网页，全部下载完了之后统计 TF-IDF。
+* Existing programs. 已有程序: <br />
+    `download_parse_one.sh`: download on page and store in directory `download`. <br />
+    `count_tf_idf`: calculate TF-IDF of all files in given directory.
+* Step 1: Generate input command file `input.cmd`, using following codes. <br />.
+  步骤 1: 生成输入命令文件 `input.cmd`, 可以用下面的命令生成。
 
+        awk '{print /path/to/download_parse_one.sh $0}' < url.txt > input.cmd
+        echo "#sync" >> input.cmd
+        echo "/path/to/count_tf_idf download/" >> input.cmd
+        echo "#exit" >> input.cmd
 
-* 启动mulritun：
-  multirun ../input.cmd 5
+* Show the input command file. <br />
+  查看命令文件。
 
-=========使用示例2：使用同步命令的例子=========
-* 功能：下载一个URL列表中的所有网页，全部下载完了之后统计tf和idf。
-* 难点：统计tf和idf必须在全部网页下载完了之后才能进行。
-* 已有程序：
-  download_parse_one.sh：下载一个网页，处理后存放到目录download下面
-  count_tf_idf：给定目录，在目录下所有文件上统计tf和idf。
-* 生成命令文件：
-  awk '{print download_parse_one.sh $0}' < url.txt > input.cmd
-  echo "#sync" >> input.cmd
-  echo "./count_tf_idf download/" >> input.cmd
-  echo "#exit" >> input.cmd
-* 启动multirun：
-  multirun input.cmd 10
+        /path/to/download_parse_one.sh http://www.baidu.com/
+        ...
+        /path/to/download_parse_one.sh http://www.google.com/
+        #sync
+        /path/to/count_tf_idf download/
+        #exit
 
-TODO: 示例3可以用更简单的方法实现，就是需要并行的部分再使用multirun
+* Step 2: Run `multirun` with 10 threads. <br />
+  步骤 2: 运行 `multirun` 启动10个线程。
+
+        /path/to/multirun input.cmd 10 -l log.txt
 
 multictrl
 ---------
@@ -123,29 +132,35 @@ Not implemented yet. <br />
 
 What's next?
 ------------
-支持功能: 
+The next main version of multirun should support following operations: 
+
 * 配置文件一定是可以直接用bash执行的，也就是说所有的附加控制信息都写在注释里
+
 * 每个任务有一个唯一的可配置的字符串id, 在配置文件和动态调整的时候都用这个可读性比较好的id来代表任务
+
 * 支持静态添加任务和设置任务拓扑结构
+
 * 支持动态添加新任务并设置新任务和现有任务的拓扑关系
+
 * 支持任务状态和拓扑结构查询功能(已完成, 执行中, 队列中, 未入队)
+
 * 支持删除队列中和未入队任务
+
 * 支持调整队列中任务执行顺序
+
+* 可以动态修改线程的数目。
+
 * 支持调整队列中和未入队任务的拓扑结构. 注意如果修改了队列中的任务的拓扑结构, 有可能会让任务从队列中移到未入队, 或相反
+
 * 强制停止当前任务, 并自动删除依赖该任务的后续任务树
+
 * 断点续行? 
+
 * 不能修改任何已完成任务的状态
+
 * 支持动态调整线程数目
 
-实现细节:
 * 核心结构是graph, 根据graph的拓扑排序来控制命令的顺序
-每次并行执行入度为0的任务，当完成某个任务时，主线程判断修改入度，再把入度为0的添加到队列中。
-增加命令，可以动态修改线程的数目。
 
-
-
-
-
-
-
+* 每次并行执行入度为0的任务，当完成某个任务时，主线程判断修改入度，再把入度为0的添加到队列中。
 
